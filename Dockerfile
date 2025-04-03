@@ -1,41 +1,32 @@
-# Use Ubuntu as the base image
+# Base image
 FROM ubuntu:latest
 
-# Set environment variables
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-ENV PATH="$JAVA_HOME/bin:$PATH"
+# Install dependencies
+RUN apt update && apt install -y openjdk-17-jdk wget curl unzip mysql-server
 
-# Update packages and install dependencies
-RUN apt-get update && apt-get install -y \
-    openjdk-11-jdk \
-    wget \
-    unzip \
-    mysql-client \
-    && rm -rf /var/lib/apt/lists/*
+# Set environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Install Apache Tomcat
-WORKDIR /usr/local
-RUN apt-get update && apt-get install -y wget \
-    && wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.82/bin/apache-tomcat-9.0.82.tar.gz \
-    && tar xvf apache-tomcat-9.0.82.tar.gz \
-    && mv apache-tomcat-9.0.82 /usr/local/tomcat \
-    && rm apache-tomcat-9.0.82.tar.gz
+WORKDIR /opt
+RUN wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.80/bin/apache-tomcat-9.0.80.tar.gz \
+    && tar -xvf apache-tomcat-9.0.80.tar.gz \
+    && rm apache-tomcat-9.0.80.tar.gz
 
-# Set environment variables for Tomcat
-ENV CATALINA_HOME=/usr/local/tomcat
-ENV PATH="$CATALINA_HOME/bin:$PATH"
+ENV CATALINA_HOME=/opt/apache-tomcat-9.0.80
+ENV PATH=$CATALINA_HOME/bin:$PATH
 
-# Install and configure Spring Boot, Spring Cloud (via Maven)
-RUN apt-get update && apt-get install -y maven
+# Install Spring Boot CLI
+RUN curl -s https://get.sdkman.io | bash && \
+    source "$HOME/.sdkman/bin/sdkman-init.sh" && \
+    sdk install springboot
 
-# Set working directory
-WORKDIR /app
-
-# Copy application files
-COPY . .
-
-# Expose necessary ports
+# Expose ports
 EXPOSE 8080 3306
 
+# Set working directory
+WORKDIR /opt/apache-tomcat-9.0.80
+
 # Start Tomcat
-CMD ["/usr/local/tomcat/bin/catalina.sh", "run"]
+CMD ["bin/catalina.sh", "run"]
